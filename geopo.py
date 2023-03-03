@@ -5,13 +5,17 @@ class Elections:
         self.nom = nom
         self.delai = delai
         self.type_election = type_election  # "majoritaire deux tours"
-        
+        self.sieges = sieges
+        self.electeurs = electeurs          # "peuple", "/nom de chambre/"
+        self.scores = list()
+    def lancer_election(self):
+                
 class Chambre:
     def __init__(self):
         self.nom = nom
         self.places = places
         self.pouvoirs = pouvoirs                # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
-        self.elections = elections
+        self.electeurs = electeurs              # "peuple", "/chambre/"
         self.president_chambre = president_chambre
         self.droit_veto = droit_veto            # True False
         
@@ -60,11 +64,11 @@ class Pays:
         self.nom = nom                                      # Nom complet du pays
         self.population = population                        # Habitants du pays
         self.richesse = 50                                  # Richesse du pays | 0;29 > Très pauvre | 30;49 > Très pauvre | 50;69 > Modéré | 70;89 > Riche | 90;100 > Très riche |
-        self.regime_politique = regime_politique            
         self.partis_politiques = partis_politiques          
         self.bonheur = 50                                   # Bonheur du pays | 0;29 > Très malheureux | 30;49 > Malheureux | 50;69 > Neutres | 70;89 > Heureux | 90;100 > Très heureux |
         self.opinions = Opinions()    
         self.agenda = None
+        self.constitution = {"Régime politique":"Democratie", "Chambres":[], 
         
     def nouveau_tour(self):
         bonheur = max(min(round(bonheur + (pays.richesse-50)//10), 100), 0)
