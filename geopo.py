@@ -84,6 +84,17 @@ class Pays:
         opinions.update_opinions(self)
 
 ###########################
+def sauvegarder(sauvegarde, data):
+    with open(sauvegarde + ".pickles", "rw+b") as fichier:
+        file.write(data)
+    f.close()
+    return
+
+def charger(sauvegarde):
+    with open(sauvegarde + ".pickles", "r") as fichier:
+        data = file.read()
+    f.close()
+    return data
 
 def creer_membres(nombres, parti):
     membres = []
