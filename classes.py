@@ -1,19 +1,27 @@
-class Elections:
-    def __init__(self, nom, delai, type_election, sieges, electeurs):
-        self.nom = nom
-        self.delai = delai
-        self.type_election = type_election  # "majoritaire deux tours", "election un seul tour"
-        self.sieges = sieges
-        self.electeurs = electeurs          # "peuple", "/nom de chambre/"
-
-
 class Chambre:
-    def __init__(self, nom, places, pouvoirs, election):
+    def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election, id_election, electeurs, delai_elections):
         self.nom = nom
-        self.nb_places = places
+        self.pays = pays
+        self.nb_sieges = nb_sieges
         self.elus = []
         self.pouvoirs = pouvoirs                # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
-        self.elections = elections
+        self.elections = {"type d'election": nom_election, "electeurs": electeurs, "delai elections": delai_elections)   #{"type d'election": ("Majoritaire à 2 tours", 0)}
+        
+        def lancer_elections(self):
+            resultats = [] # [ nbframes, [frames], 
+            def elections_majoritaire_2_tours(carte_electorale, partis)
+                if points == []:
+                    return carte_electorale
+                taille, taches = len(carte_electorale)-1, []
+                for x, y, logo in points:
+                    for x1, y1 in [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)]:
+                        if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == None:
+                            carte_electorale[y1][x1] = logo
+                            taches.append((x1, y1, logo))
+                return expansion(liste, taches)
+            
+        if self.type_election == "majoritaire deux tours":
+            return elections_majoritaire_2_tours()
         
     def ajouter_elu(self, elu):
         for i, place in enumerate(self.elus):
