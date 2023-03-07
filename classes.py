@@ -4,24 +4,40 @@ class Chambre:
         self.pays = pays
         self.nb_sieges = nb_sieges
         self.elus = []
-        self.pouvoirs = pouvoirs                # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
-        self.elections = {"type d'election": nom_election, "electeurs": electeurs, "delai elections": delai_elections)   #{"type d'election": ("Majoritaire à 2 tours", 0)}
+        self.pouvoirs = pouvoirs    # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
+        self.elections = {"type d'election": nom_election, "electeurs": electeurs, "delai elections": delai_elections}   #{"type d'election": ("Majoritaire à 2 tours", 0)}
         
         def lancer_elections(self):
-            resultats = [] # [ nbframes, [frames], 
-            def elections_majoritaire_2_tours(carte_electorale, partis)
+            def elections_majoritaire_2_tours(n, partis, resultats, carte_electorale, portées_max):
+                resultats.append(carte_electorale)
                 if points == []:
-                    return carte_electorale
+                    return {
+                        "Nombre de cartes": n,
+                        "cartes electorale": cartes_electorale,
+                        "resultats": resultats,
+                            }
                 taille, taches = len(carte_electorale)-1, []
                 for x, y, logo in points:
                     for x1, y1 in [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)]:
-                        if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == None:
+                        if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "" if portées_max >=:
                             carte_electorale[y1][x1] = logo
+                            resultats[logo] += 1
                             taches.append((x1, y1, logo))
-                return expansion(liste, taches)
+                return expansion(n+1, partis, resultats, carte_electorale)
+            
+            
+            resultats = dict()
+            for nom_parti in partis:
+                resultats[nom_parti] = 0 
+            COTE = 10
+            carte_electorale = [["" for _ in range(COTE)] for _ in range(COTE)]
+
             
         if self.type_election == "majoritaire deux tours":
-            return elections_majoritaire_2_tours()
+            return elections_majoritaire_2_tours(0, parti, resultats, carte_electorale)
+        
+        else:
+            return "erreur, parti inexistant"
         
     def ajouter_elu(self, elu):
         for i, place in enumerate(self.elus):
@@ -47,10 +63,11 @@ class Membre:
         self.popularite = popularite
         self.talent = talent
 
-
 class Parti:
-    def __init__(self, nom, nb_adherants, logo_fichier):
+    def __init__(self, nom, nb_adherants, logo_fichier, capitalisme, conservatisme, socialisme, liberalisme):
         self.nom = nom
+        self.pays
+        self.opinions = {"capitalisme":capitalisme, "socialisme":socialisme, "conservatisme":conservatisme, "liberalisme":liberalisme,} 
         self.logo = os.path.join(logo_fichier)
         self.nb_adherants = nb_adherants
         self.membres = []
@@ -85,22 +102,7 @@ class Parti:
                 self.membres[i].salaire *= 2
                 return
         assert ValueError("ce nom n'est pas dans la liste")
-
-
-class Opinions:
-    def __init__(self):
-        self.capitalisme    = 50
-        self.socialisme     = 50
-        self.liberalisme    = 50
-        self.conservatisme  = 50
     
-    def update_opinions(self, pays):
-        self.capitalisme    = max(min(round(capitalisme + (pays.richesse-50))//10, 100), 0)
-        self.socialisme     = max(min(round(socialisme - (pays.richesse-50))//10, 100), 0)
-        self.liberalisme    = max(min(round(liberalisme - (pays.bonheur-50))//10, 100), 0)
-        self.conservatisme  = max(min(round(conservatisme + (pays.bonheur-50))//10, 100), 0)
-
-
 class Pays:
     def __init__(self, nom:str, population:int, partis_politiques:list, chambres:list, logo_fichier):
         self.nom = nom                                      # Nom complet du pays
@@ -109,7 +111,7 @@ class Pays:
         self.richesse = 50                                  # Richesse du pays | 0;29 > Très pauvre | 30;49 > Très pauvre | 50;69 > Modéré | 70;89 > Riche | 90;100 > Très riche |
         self.partis_politiques = partis_politiques          
         self.bonheur = 50                                   # Bonheur du pays | 0;29 > Très malheureux | 30;49 > Malheureux | 50;69 > Neutres | 70;89 > Heureux | 90;100 > Très heureux |
-        self.opinions = Opinions()    
+        self.opinions = {"capitalisme":50, "socialisme":50, "conservatisme":50, "liberalisme":50,} 
         self.agenda = dict()
         self.constitution = {"Chambres":chambres}
 
@@ -117,3 +119,18 @@ class Pays:
         bonheur = max(min(round(bonheur + (pays.richesse-50)//10), 100), 0)
         population += round(population * (bonheur-40//1500))
         opinions.update_opinions(self)
+
+    def update_opinions(self):
+        self.opinions["capitalisme"]    = max(min(round(self.opinions["capitalisme"] + (self.richesse-50))//10, 100), 0)
+        self.opinions["socialisme"]     = max(min(round(self.opinions["socialisme"] - (self.richesse-50))//10, 100), 0)
+        self.opinions["liberalisme"]    = max(min(round(self.opinions["liberalisme"] - (self.bonheur-50))//10, 100), 0)
+        self.opinions["conservatisme"]  = max(min(round(self.opinions["conservatisme"] + (self.bonheur-50))//10, 100), 0)
+        
+    def obtenir_portée(self):
+        portées_max = 100 * len(self.opinions)
+        portées = dict()
+        for parti in self.partis_politiques:
+            portées[parti.nom] = portées_max
+            for opinion in self.opinions:
+                portées[parti.nom] -= abs(self.opinions[opinion] - parti.opinions[opinion]) // len(self.opinions)
+        return portées
