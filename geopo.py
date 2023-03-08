@@ -19,38 +19,41 @@ class Chambre:
         def election_directe_1_tour(n, partis, resultats, carte_electorale, portées_max):
             if partis == []:
                 return {
+                    "type d'election": "Election directe à 1 tour",
                     "Nombre de cartes": n,
-                    "cartes electorales": carte_electorale,
-                    "resultats": resultats,
+                    "cartes": {"carte":carte_electorale, "resultats":resultats | {"abstention": COTE**2 - sum([resultats[clé] for clé in resultats])}},
                         }
             taille, taches = len(carte_electorale)-1, []
-            for x, y, logo in partis:                
+            for x, y, logo in partis:            
                 for x1, y1 in [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)]:
-                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= COTE * portées_max[logo]:
+                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= COTE * portées_max[logo]: 
                         carte_electorale[y1][x1] = logo
                         resultats[logo] += 1
-                        resultats["abstention"] -= 1
                         taches.append((x1, y1, logo))
             return election_directe_1_tour(n+1, taches, resultats, carte_electorale, portées_max)
         
         def election_indirecte_1_tours():
-        
-        resultats, pays = {"abstention":COTE**2}, chercher_element("Francie", liste_pays)
-        carte_electorale = [["." for _ in range(COTE)] for _ in range(COTE)]
+            pass
+
+        pays, partis, resultats = chercher_element("Francie", liste_pays), [], dict()
+        carte_electorale, portées_max = [["." for _ in range(COTE)] for _ in range(COTE)], pays.obtenir_portée()
         for parti in pays.partis_politiques:
-            resultats[parti.nom] = 0 
-            carte_electorale[parti.opinions["liberalisme"]][parti.opinions["capitalisme"]] = parti.nom
-        portées_max = pays.obtenir_portée()
+            resultats[parti.nom] = 0
+            x, y = max(COTE//100*parti.opinions["liberalisme"]-1, 0), max(COTE//100*parti.opinions["capitalisme"]-1, 0)
+            carte_electorale[y][x] = parti.nom
+            partis.append((y, x, parti.nom))
+            
 
         if self.elections["type d'election"] == "Election directe à 1 tour":
-            return election_directe_1_tour(0, [(parti.opinions["capitalisme"], parti.opinions["liberalisme"], parti.nom) for parti in partis], resultats, carte_electorale, portées_max)
+            return election_directe_1_tour(0, partis, resultats, carte_electorale, portées_max)
         elif self.elections["type d'election"] == "Election directe à 2 tour":
-            return election_indirecte_2_tours
+            return election_directe_2_tours()
         elif self.elections["type d'election"] == "Election indirect à 1 tour":
             return
         elif self.elections["type d'election"] == "Election indirect à 2 tour":
+            return
         else:
-            return "erreur, parti inexistant"
+            raise ValueError("lancer_elections(): erreur, type d'election inexistant")
         
     def ajouter_elu(self, elu):
         for i, place in enumerate(self.elus):
@@ -64,7 +67,7 @@ class Chambre:
             if elu.nom == nom_elu:
                 self.elus[i] = None
                 return elu
-        assert ValueError("ce nom n'est pas dans la liste")
+        raise ValueError("ce nom n'est pas dans la liste")
 
 
 class Membre:
@@ -144,7 +147,7 @@ class Pays:
         portées_max = 50 * len(self.opinions)
         portées = dict()
         for parti in self.partis_politiques:
-            portées[parti.nom] = max(sum([abs(self.opinions[opinion] - parti.opinions[opinion]) for opinion in parti.opinions]) / portées_max, 0.1)
+            portées[parti.nom] = max((100-sum([abs(parti.opinions[opinion] - self.opinions[opinion]) for opinion in parti.opinions]) // len(self.opinions)) / 100, 0.02)
         return portées
 
 
@@ -160,12 +163,11 @@ def chercher_element(nom, liste):
             return element
 
 Francie = Pays("Francie", 100000, 
-    [Parti("F", "Francie", 0, None, 50, 50), Parti("A", "Francie", 0, "/", 0, 0)], 
-    [Chambre("A", "Francie", 50, None, "Election directe majoritaire à 1 tour", None, None)], 
+    [Parti("F", "Francie", 0, None, 25, 25), Parti("A", "Francie", 0, "/", 75, 75)], 
+    [Chambre("A", "Francie", 50, None, "Election directe à 1 tour", None, None)], 
     None)
 
 liste_pays = [Francie]
 
 x=(Francie.constitution["Chambres"][0].lancer_elections())
-print(x["resultats"])
-print_liste(x["cartes electorales"])
+print_liste(x["cartes"]["carte"])
