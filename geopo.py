@@ -1,9 +1,8 @@
 from random import randrange
 import os
-import ecran
 import sys
 
-sys.setrecursionlimit(999998)
+sys.setrecursionlimit(999999)
 
 class Chambre:
     def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election, electeurs, delai_elections):
@@ -17,7 +16,7 @@ class Chambre:
     def lancer_elections(self):
         COTE = 100
         
-        def elections_majoritaire_2_tours(n, partis, resultats, carte_electorale, portées_max):
+        def election_directe_1_tour(n, partis, resultats, carte_electorale, portées_max):
             if partis == []:
                 return {
                     "Nombre de cartes": n,
@@ -32,21 +31,24 @@ class Chambre:
                         resultats[logo] += 1
                         resultats["abstention"] -= 1
                         taches.append((x1, y1, logo))
-                
-            return elections_majoritaire_2_tours(n+1, taches, resultats, carte_electorale, portées_max)
+            return election_directe_1_tour(n+1, taches, resultats, carte_electorale, portées_max)
         
+        def election_indirecte_1_tours():
         
         resultats, pays = {"abstention":COTE**2}, chercher_element("Francie", liste_pays)
-        
-        partis = pays.partis_politiques
         carte_electorale = [["." for _ in range(COTE)] for _ in range(COTE)]
-        for parti in partis:
+        for parti in pays.partis_politiques:
             resultats[parti.nom] = 0 
             carte_electorale[parti.opinions["liberalisme"]][parti.opinions["capitalisme"]] = parti.nom
         portées_max = pays.obtenir_portée()
 
-        if self.elections["type d'election"] == "majoritaire à 2 tours":
-            return elections_majoritaire_2_tours(0, [(parti.opinions["capitalisme"], parti.opinions["liberalisme"], parti.nom) for parti in partis], resultats, carte_electorale, portées_max)
+        if self.elections["type d'election"] == "Election directe à 1 tour":
+            return election_directe_1_tour(0, [(parti.opinions["capitalisme"], parti.opinions["liberalisme"], parti.nom) for parti in partis], resultats, carte_electorale, portées_max)
+        elif self.elections["type d'election"] == "Election directe à 2 tour":
+            return election_indirecte_2_tours
+        elif self.elections["type d'election"] == "Election indirect à 1 tour":
+            return
+        elif self.elections["type d'election"] == "Election indirect à 2 tour":
         else:
             return "erreur, parti inexistant"
         
@@ -148,18 +150,6 @@ class Pays:
 
 ###########################
 
-def sauvegarder(sauvegarde, data):
-    with open(sauvegarde + ".pickles", "rw+b") as fichier:
-        file.write(data)
-    f.close()
-    return
-
-def charger(sauvegarde):
-    with open(sauvegarde + ".pickles", "r") as fichier:
-        data = file.read()
-    f.close()
-    return data
-
 def print_liste(liste):
     for i, ligne in enumerate(liste):
         print(i, "\t", *ligne, sep="")
@@ -171,7 +161,7 @@ def chercher_element(nom, liste):
 
 Francie = Pays("Francie", 100000, 
     [Parti("F", "Francie", 0, None, 50, 50), Parti("A", "Francie", 0, "/", 0, 0)], 
-    [Chambre("A", "Francie", 50, None, "majoritaire à 2 tours", None, None)], 
+    [Chambre("A", "Francie", 50, None, "Election directe majoritaire à 1 tour", None, None)], 
     None)
 
 liste_pays = [Francie]
