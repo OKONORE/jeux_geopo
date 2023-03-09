@@ -25,8 +25,9 @@ class Chambre:
                         }
             taille, taches = len(carte_electorale)-1, []
             for x, y, logo in partis:            
-                for x1, y1 in [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)]:
-                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= COTE * portées_max[logo]: 
+                for x1, y1 in ([(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)] if n % 2 == 0 else 
+                               [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y), (1+x, 1+y), (-1+x, -1+y), (1+x, -1+y), (-1+x, 1+y)]):
+                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= 10: #portées_max[logo]: 
                         carte_electorale[y1][x1] = logo
                         resultats[logo] += 1
                         taches.append((x1, y1, logo))
@@ -104,6 +105,15 @@ class Parti:
         self.membres.append(membre)
         self.calculer_salaires()
 
+    def ajouter_membre_aleatoire(self):
+        for i, place in enumerate(self.membres):
+            if place is None:
+                self.membres[i] = Membre("NOM", randrange(18, 60), randrange(2000, 6000), randrange(0, 10), randrange(0, 10), randrange(0, 10))
+                self.calculer_salaires()
+                return
+    self.membres.append(membre)
+    self.calculer_salaires()
+
     def retirer_membre(self, nom_membre):
         for i, membre in enumerate(self.membres):
             if membre.nom == nom_membre:
@@ -150,6 +160,12 @@ class Pays:
             portées[parti.nom] = max((100-sum([abs(parti.opinions[opinion] - self.opinions[opinion]) for opinion in parti.opinions]) // len(self.opinions)) / 100, 0.02)
         return portées
 
+    def chambres_selon_pouvoir(self, pouvoir):
+        resultat = list()
+        for chambre in self.constitution["Chambres"]:
+            if pouvoir in chambre.pouvoirs:
+                resultat.append()
+        return resultat
 
 ###########################
 
@@ -163,7 +179,7 @@ def chercher_element(nom, liste):
             return element
 
 Francie = Pays("Francie", 100000, 
-    [Parti("F", "Francie", 0, None, 25, 25), Parti("A", "Francie", 0, "/", 75, 75)], 
+    [Parti("F", "Francie", 0, None, 0, 0), Parti("A", "Francie", 0, "/", 75, 75)], 
     [Chambre("A", "Francie", 50, None, "Election directe à 1 tour", None, None)], 
     None)
 
