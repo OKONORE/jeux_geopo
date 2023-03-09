@@ -1,6 +1,7 @@
 from random import randrange
 import os
 import sys
+from copy import deepcopy
 
 sys.setrecursionlimit(999999)
 
@@ -16,37 +17,37 @@ class Chambre:
     def lancer_elections(self):
         COTE = 100
         
-        def election_directe_1_tour(n, partis, resultats, carte_electorale, portées_max):
+        def election_directe_1_tour(n, partis, resultats, carte_electorale, portées_max, cartes):
+            cartes.append({"carte":deepcopy(carte_electorale), "resultats": resultats |  {"abstention":COTE**2 - sum([resultats[clé] for clé in resultats])}})
             if partis == []:
                 return {
-                    "type d'election": "Election directe à 1 tour",
-                    "Nombre de cartes": n,
-                    "cartes": {"carte":carte_electorale, "resultats":resultats | {"abstention": COTE**2 - sum([resultats[clé] for clé in resultats])}},
+                    "nombre de cartes": n,
+                    "cartes": cartes,
                         }
             taille, taches = len(carte_electorale)-1, []
             for x, y, logo in partis:            
                 for x1, y1 in ([(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)] if n % 2 == 0 else 
                                [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y), (1+x, 1+y), (-1+x, -1+y), (1+x, -1+y), (-1+x, 1+y)]):
-                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= 10: #portées_max[logo]: 
+                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= COTE * portées_max[logo]: 
                         carte_electorale[y1][x1] = logo
                         resultats[logo] += 1
                         taches.append((x1, y1, logo))
-            return election_directe_1_tour(n+1, taches, resultats, carte_electorale, portées_max)
+            return election_directe_1_tour(n+1, taches, resultats, carte_electorale, portées_max, cartes)
         
         def election_indirecte_1_tours():
             pass
 
         pays, partis, resultats = chercher_element("Francie", liste_pays), [], dict()
-        carte_electorale, portées_max = [["." for _ in range(COTE)] for _ in range(COTE)], pays.obtenir_portée()
+        carte_electorale = [["." for _ in range(COTE)] for _ in range(COTE)] 
         for parti in pays.partis_politiques:
             resultats[parti.nom] = 0
             x, y = max(COTE//100*parti.opinions["liberalisme"]-1, 0), max(COTE//100*parti.opinions["capitalisme"]-1, 0)
             carte_electorale[y][x] = parti.nom
-            partis.append((y, x, parti.nom))
+            partis.append((x, y, parti.nom))
             
 
         if self.elections["type d'election"] == "Election directe à 1 tour":
-            return election_directe_1_tour(0, partis, resultats, carte_electorale, portées_max)
+            return election_directe_1_tour(0, partis, resultats, carte_electorale, pays.obtenir_portée(),[])
         elif self.elections["type d'election"] == "Election directe à 2 tour":
             return election_directe_2_tours()
         elif self.elections["type d'election"] == "Election indirect à 1 tour":
@@ -104,15 +105,6 @@ class Parti:
                 return
         self.membres.append(membre)
         self.calculer_salaires()
-
-    def ajouter_membre_aleatoire(self):
-        for i, place in enumerate(self.membres):
-            if place is None:
-                self.membres[i] = Membre("NOM", randrange(18, 60), randrange(2000, 6000), randrange(0, 10), randrange(0, 10), randrange(0, 10))
-                self.calculer_salaires()
-                return
-    self.membres.append(membre)
-    self.calculer_salaires()
 
     def retirer_membre(self, nom_membre):
         for i, membre in enumerate(self.membres):
@@ -179,11 +171,15 @@ def chercher_element(nom, liste):
             return element
 
 Francie = Pays("Francie", 100000, 
-    [Parti("F", "Francie", 0, None, 0, 0), Parti("A", "Francie", 0, "/", 75, 75)], 
+    [Parti("F", "Francie", 0, None, 50, 0), Parti("A", "Francie", 0, "/", 0, 0)], 
     [Chambre("A", "Francie", 50, None, "Election directe à 1 tour", None, None)], 
     None)
 
 liste_pays = [Francie]
 
 x=(Francie.constitution["Chambres"][0].lancer_elections())
-print_liste(x["cartes"]["carte"])
+print(x["nombre de cartes"])
+print_liste(x["cartes"][-1]["carte"])
+
+def membre_aleatoire(self):
+    return Membre("NOM", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
