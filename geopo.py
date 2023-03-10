@@ -2,6 +2,8 @@ from random import randrange
 import os
 import sys
 from copy import deepcopy
+import dearpygui.dearpygui as dpg
+import GUI
 
 sys.setrecursionlimit(999999)
 
@@ -178,8 +180,39 @@ Francie = Pays("Francie", 100000,
 liste_pays = [Francie]
 
 x=(Francie.constitution["Chambres"][0].lancer_elections())
-print(x["nombre de cartes"])
-print_liste(x["cartes"][-1]["carte"])
 
 def membre_aleatoire(self):
     return Membre("NOM", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
+
+def main():
+    SCREEN_SIZE = [1280, 720]
+
+    def ratio_width(ratio):
+        return round(SCREEN_SIZE[0]/1920*ratio)
+    def ratio_height(ratio):
+        return round(SCREEN_SIZE[1]/1080*ratio)
+
+
+
+
+    def rien():
+        pass
+
+    def quit():
+        dpg.stop_dearpygui()
+
+    dpg.create_context()
+    dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=SCREEN_SIZE[0], height=SCREEN_SIZE[1])
+    dpg.setup_dearpygui()
+
+    with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(SCREEN_SIZE[0]//3, SCREEN_SIZE[1]//3)):
+        for i, args in enumerate([("Jouer", rien, ), ("Options", rien), ("Quitter", quit)]):
+    
+            dpg.add_button(tag=i, arrow=False, label=args[0], callback=args[1], width=ratio_width(500), height=ratio_height(50))
+
+    #toggle_viewport_fullscreen()
+    dpg.show_viewport(maximized=True)
+    dpg.start_dearpygui()
+    #dpg.destroy_context()
+
+main()
