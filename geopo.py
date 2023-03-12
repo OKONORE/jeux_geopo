@@ -3,7 +3,6 @@ import os
 import sys
 from copy import deepcopy
 import dearpygui.dearpygui as dpg
-import GUI
 
 sys.setrecursionlimit(999999)
 
@@ -184,35 +183,60 @@ x=(Francie.constitution["Chambres"][0].lancer_elections())
 def membre_aleatoire(self):
     return Membre("NOM", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
 
+def quit():
+    dpg.stop_dearpygui()
+    exit()
+
+def rien():
+    pass
+
+def option_menu():
+    dpg.show_item("Menu_Options")
+
+#####################
+
 def main():
-    SCREEN_SIZE = [1280, 720]
-
-    def ratio_width(ratio):
-        return round(SCREEN_SIZE[0]/1920*ratio)
-    def ratio_height(ratio):
-        return round(SCREEN_SIZE[1]/1080*ratio)
-
-
-
-
-    def rien():
-        pass
-
-    def quit():
-        dpg.stop_dearpygui()
+    WIDTH = 1280
+    HEIGHT = 720
 
     dpg.create_context()
-    dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=SCREEN_SIZE[0], height=SCREEN_SIZE[1])
+    dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=WIDTH, height=HEIGHT)
     dpg.setup_dearpygui()
 
-    with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(SCREEN_SIZE[0]//3, SCREEN_SIZE[1]//3)):
-        for i, args in enumerate([("Jouer", rien, ), ("Options", rien), ("Quitter", quit)]):
-    
-            dpg.add_button(tag=i, arrow=False, label=args[0], callback=args[1], width=ratio_width(500), height=ratio_height(50))
+    with dpg.texture_registry(show=False):
+        width, height, channels, data = dpg.load_image(os.path.join("data/", "PolitiSim_white.png"))
+        dpg.add_static_texture(width=width, height=height, default_value=data, tag="img_PolitiSim_white")
 
+    with dpg.window(label="Titre du jeu", tag="Titre", autosize=True, no_close=True, no_move=True, no_collapse=True, no_background=True, no_title_bar=True, pos=(WIDTH//3.25, HEIGHT//20)):
+        dpg.add_image("img_PolitiSim_white", tag="tag_img_PolitiSim_white", pos=(0, 0))
+
+    with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(WIDTH//3, HEIGHT//3)):       
+        for args in [("Jouer", rien, ), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Quitter", quit)]:
+            dpg.add_button(tag="Button_menu_"+args[0], arrow=False, label=args[0], callback=args[1], width=WIDTH//3, height=HEIGHT//10)
+    
+    # -> Menu Options
+
+    with dpg.window(label="Menu Options", tag="Menu_Options", modal=True, show=False,  no_move=True, pos=(WIDTH//3, HEIGHT//3)):
+        
+        dpg.add_text("Paramètres d'Écran:", bullet=True)
+        with dpg.group(horizontal=True):
+            for i, args in enumerate([("Plein Ecran"), ("VSync"), ("Test")]):
+                dpg.add_checkbox(label=args, indent=(WIDTH//3//3-5)*i)
+        
+        dpg.add_spacer(height=5)
+        dpg.add_text("Paramètres de touches:", bullet=True)
+        with dpg.group(label="Touches", horizontal=True):
+            for i, args in enumerate([("AZERTY"), ("QWERTY"), ("Personalisé")]):
+                dpg.add_checkbox(label=args, indent=(WIDTH//3//3-5)*i)
+
+        dpg.add_spacer(height=5)
+        with dpg.group(horizontal=True):
+            dpg.add_button(label="Fermer", callback=lambda: dpg.hide_item("Menu_Options"), width=WIDTH//3//2-5)
+            dpg.add_button(label="Appliquer", callback=None, width=WIDTH//3//2-5)
+    
     #toggle_viewport_fullscreen()
-    dpg.show_viewport(maximized=True)
+    dpg.show_viewport(maximized=False)
     dpg.start_dearpygui()
-    #dpg.destroy_context()
+    dpg.destroy_context()
 
 main()
