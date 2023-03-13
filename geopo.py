@@ -1,10 +1,18 @@
 from random import randrange
 import os
 import sys
+import pathlib
+import pickle
 from copy import deepcopy
 import dearpygui.dearpygui as dpg
-
 sys.setrecursionlimit(999999)
+
+if sys.platform == "win32":
+    user_directory = os.path.join(pathlib.Path.home(), "AppData/", "Roaming/")
+elif sys.platform == "linux":
+    user_directory = os.path.join(pathlib.Path.home(), ".local/", "share/")
+elif sys.platform == "darwin":
+    user_directory = os.path.join(pathlib.Path.home(), "Library/", "Application Support/")
 
 class Chambre:
     def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election, electeurs, delai_elections):
@@ -193,11 +201,39 @@ def rien():
 def option_menu():
     dpg.show_item("Menu_Options")
 
+
+
+def save_settings(sender, app_data, values):
+    if not os.path.exists(user_directory+"PolitiSim/"): os.makedirs(user_directory+"PolitiSim/")
+    settings = dict()
+    for element in values:
+        settings[element] = dpg.get_value(element)
+    pickle.dump(settings, open(user_directory+"PolitiSim/PolitiSim.settings", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+    settings = get_settings()
+
+def get_settings():
+    if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"): 
+        return pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
+    return {
+        'FullScreen?': False, 
+        'VSync?': False, 
+        'AZERTY?': False, 
+        'QWERTY?': False, 
+        'personalized?': False
+    }
+
+def check_1_only(sender, app_data, user_data):
+    dpg.set_value(sender, value=True)
+    for element in user_data:
+        if element != sender:
+            dpg.set_value(element, value=False)
+
 #####################
 
 def main():
     WIDTH = 1280
     HEIGHT = 720
+    settings = get_settings()
 
     dpg.create_context()
     dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=WIDTH, height=HEIGHT)
@@ -211,29 +247,51 @@ def main():
         dpg.add_image("img_PolitiSim_white", tag="tag_img_PolitiSim_white", pos=(0, 0))
 
     with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(WIDTH//3, HEIGHT//3)):       
-        for args in [("Jouer", rien, ), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Quitter", quit)]:
-            dpg.add_button(tag="Button_menu_"+args[0], arrow=False, label=args[0], callback=args[1], width=WIDTH//3, height=HEIGHT//10)
+        for args in [("Jouer", rien, ), ("Tutoriel", rien), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Crédits", lambda: dpg.configure_item("Menu_Credits", show=True)), ("Quitter", quit)]:
+            dpg.add_button(tag="Button_menu_"+args[0], arrow=False, label=args[0], callback=args[1], width=WIDTH//3, height=HEIGHT//15)
     
-    # -> Menu Options
+    # ----> Menu Crédits
 
-    with dpg.window(label="Menu Options", tag="Menu_Options", modal=True, show=False,  no_move=True, pos=(WIDTH//3, HEIGHT//3)):
-        
+        with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3)):
+            dpg.add_text("ya que OKONORE pour l'instant")
+
+    # ----> Menu Options
+
+    with dpg.window(label="Menu Options", tag="Menu_Options", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3)):
+        all_options_elements = []
         dpg.add_text("Paramètres d'Écran:", bullet=True)
         with dpg.group(horizontal=True):
-            for i, args in enumerate([("Plein Ecran"), ("VSync"), ("Test")]):
-                dpg.add_checkbox(label=args, indent=(WIDTH//3//3-5)*i)
+            screen_check_box = [("FullScreen?", "Plein Ecran"), ("VSync?", "VSync")]  
+            all_options_elements += [tag for tag, _ in screen_check_box]                
+            for i, args in enumerate(screen_check_box):
+                dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], indent=(WIDTH//3//3-5)*i)
         
         dpg.add_spacer(height=5)
         dpg.add_text("Paramètres de touches:", bullet=True)
         with dpg.group(label="Touches", horizontal=True):
-            for i, args in enumerate([("AZERTY"), ("QWERTY"), ("Personalisé")]):
-                dpg.add_checkbox(label=args, indent=(WIDTH//3//3-5)*i)
+            keys_check_box = [("AZERTY?", "Preset AZERTY"), ("QWERTY?", "Preset QWERTY"), ("personalized?", "Personalisé")]
+            all_options_elements += [tag for tag, _ in keys_check_box]
+            for i, args in enumerate(keys_check_box):
+                dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], callback=check_1_only, user_data=[tag for tag, _ in keys_check_box], indent=(WIDTH//3//3-5)*i)
+        
+        dpg.add_text("Raccourcis Personalisés:", bullet=True)
+        with dpg.table(header_row=True, label="Raccourcis Personalisés"):
+            dpg.add_table_column(label="Action")
+            dpg.add_table_column(label="Raccourci")
+
+            actions = ["Test Touche 1", "Test Touche 1"]
+            all_options_elements += actions
+            for action in actions:
+                with dpg.table_row():
+                    dpg.add_text(action)
 
         dpg.add_spacer(height=5)
         with dpg.group(horizontal=True):
             dpg.add_button(label="Fermer", callback=lambda: dpg.hide_item("Menu_Options"), width=WIDTH//3//2-5)
-            dpg.add_button(label="Appliquer", callback=None, width=WIDTH//3//2-5)
+            dpg.add_button(label="Appliquer", callback=save_settings, user_data=all_options_elements, width=WIDTH//3//2-5)
     
+    ##############
+
     #toggle_viewport_fullscreen()
     dpg.show_viewport(maximized=False)
     dpg.start_dearpygui()
