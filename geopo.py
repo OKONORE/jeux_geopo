@@ -5,6 +5,7 @@ import pathlib
 import pickle
 from copy import deepcopy
 import dearpygui.dearpygui as dpg
+
 sys.setrecursionlimit(999999)
 
 if sys.platform == "win32":
@@ -14,8 +15,11 @@ elif sys.platform == "linux":
 elif sys.platform == "darwin":
     user_directory = os.path.join(pathlib.Path.home(), "Library/", "Application Support/")
 
+##
+
 class Chambre:
-    def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election, electeurs, delai_elections):
+    def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election,
+                 electeurs, delai_elections):
         self.nom = nom
         self.pays = pays
         self.nb_sieges = nb_sieges
@@ -50,7 +54,7 @@ class Chambre:
         carte_electorale = [["." for _ in range(COTE)] for _ in range(COTE)] 
         for parti in pays.partis_politiques:
             resultats[parti.nom] = 0
-            x, y = max(COTE//100*parti.opinions["liberalisme"]-1, 0), max(COTE//100*parti.opinions["capitalisme"]-1, 0)
+            x, y = max(COTE//100 * parti.opinions["liberalisme"]-1, 0), max(COTE//100*parti.opinions["capitalisme"]-1, 0)
             carte_electorale[y][x] = parti.nom
             partis.append((x, y, parti.nom))
             
@@ -95,8 +99,13 @@ class Parti:
         capitalisme, liberalisme = max(min(capitalisme, 100), 0), max(min(liberalisme, 100), 0)
         self.nom = nom
         self.pays = pays
-        self.opinions = {"capitalisme":capitalisme, "socialisme":100-capitalisme, "conservatisme":100-liberalisme, "liberalisme":liberalisme} 
-        self.logo = logo #os.path.join(logo_fichier)
+        self.opinions = {
+            "capitalisme": capitalisme,
+            "socialisme": 100 - capitalisme,
+            "conservatisme": 100 - liberalisme,
+            "liberalisme":liberalisme,
+            }
+        self.logo = logo  # os.path.join(logo_fichier)
         self.nb_adherants = nb_adherants
         self.membres = []
         self.salaires = self.calculer_salaires()
@@ -121,7 +130,7 @@ class Parti:
                 self.membres[i] = None
                 self.calculer_salaires()
                 return
-        assert ValueError("ce nom n'est pas dans la liste")
+        raise ValueError("ce nom n'est pas dans la liste")
 
     def changer_leader(self, nom_membre):
         for i, membre in enumerate(self.membres):
@@ -129,10 +138,10 @@ class Parti:
                 self.leader_id = i
                 self.membres[i].salaire *= 2
                 return
-        assert ValueError("ce nom n'est pas dans la liste")
-    
+        raise ValueError("ce nom n'est pas dans la liste")
+
 class Pays:
-    def __init__(self, nom:str, population:int, partis_politiques:list, chambres:list, logo):
+    def __init__(self, nom : str, population : int, partis_politiques : list, chambres : list, logo):
         self.nom = nom                                      # Nom complet du pays
         self.logo = logo #os.path.join(logo_fichier)
         self.population = population                        # Habitants du pays
@@ -145,7 +154,7 @@ class Pays:
 
     def nouveau_tour(self):
         bonheur = max(min(round(bonheur + (pays.richesse-50)//10), 100), 0)
-        population += round(population * (bonheur-40//1500))
+        population += round(population * (bonheur - 40//1500))
         opinions.update_opinions(self)
 
     def update_opinions(self):
@@ -179,17 +188,12 @@ def chercher_element(nom, liste):
         if element.nom == nom:
             return element
 
-Francie = Pays("Francie", 100000, 
-    [Parti("F", "Francie", 0, None, 50, 0), Parti("A", "Francie", 0, "/", 0, 0)], 
-    [Chambre("A", "Francie", 50, None, "Election directe à 1 tour", None, None)], 
-    None)
-
-liste_pays = [Francie]
-
-x=(Francie.constitution["Chambres"][0].lancer_elections())
-
 def membre_aleatoire(self):
     return Membre("NOM", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
+
+def _hyperlink(text, address):
+    b = dpg.add_button(label=text, callback=lambda:webbrowser.open(address))
+    dpg.bind_item_theme(b, "__demo_hyperlinkTheme")
 
 def quit():
     dpg.stop_dearpygui()
@@ -201,10 +205,10 @@ def rien():
 def option_menu():
     dpg.show_item("Menu_Options")
 
-
+def play():
+    pass
 
 def save_settings(sender, app_data, values):
-    if not os.path.exists(user_directory+"PolitiSim/"): os.makedirs(user_directory+"PolitiSim/")
     settings = dict()
     for element in values:
         settings[element] = dpg.get_value(element)
@@ -213,13 +217,14 @@ def save_settings(sender, app_data, values):
 
 def get_settings():
     if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"): 
-        return pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
+       return pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
     return {
-        'FullScreen?': False, 
-        'VSync?': False, 
-        'AZERTY?': False, 
-        'QWERTY?': False, 
-        'personalized?': False
+        'FullScreen?': False,
+        'VSync?': False,
+        'AZERTY?': False,
+        'QWERTY?': False,
+        'personalized?': False,
+        "WindowedFullScreen?": False
     }
 
 def check_1_only(sender, app_data, user_data):
@@ -233,7 +238,6 @@ def check_1_only(sender, app_data, user_data):
 def main():
     WIDTH = 1280
     HEIGHT = 720
-    settings = get_settings()
 
     dpg.create_context()
     dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=WIDTH, height=HEIGHT)
@@ -247,13 +251,14 @@ def main():
         dpg.add_image("img_PolitiSim_white", tag="tag_img_PolitiSim_white", pos=(0, 0))
 
     with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(WIDTH//3, HEIGHT//3)):       
-        for args in [("Jouer", rien, ), ("Tutoriel", rien), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Crédits", lambda: dpg.configure_item("Menu_Credits", show=True)), ("Quitter", quit)]:
+        for args in [("Jouer", play), ("Tutoriel", rien), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Crédits", lambda: dpg.configure_item("Menu_Credits", show=True)), ("Quitter", quit)]:
             dpg.add_button(tag="Button_menu_"+args[0], arrow=False, label=args[0], callback=args[1], width=WIDTH//3, height=HEIGHT//15)
     
     # ----> Menu Crédits
 
-        with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3)):
-            dpg.add_text("ya que OKONORE pour l'instant")
+        with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3), width=WIDTH//3+10):
+            with dpg.child_window(label="xOKONORE"):
+                dpg.add_text("OKONORE")
 
     # ----> Menu Options
 
@@ -261,7 +266,7 @@ def main():
         all_options_elements = []
         dpg.add_text("Paramètres d'Écran:", bullet=True)
         with dpg.group(horizontal=True):
-            screen_check_box = [("FullScreen?", "Plein Ecran"), ("VSync?", "VSync")]  
+            screen_check_box = [("FullScreen?", "Plein Ecran"), ("WindowedFullScreen?", "Fenêtré"), ("VSync?", "VSync")]  
             all_options_elements += [tag for tag, _ in screen_check_box]                
             for i, args in enumerate(screen_check_box):
                 dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], indent=(WIDTH//3//3-5)*i)
@@ -279,7 +284,7 @@ def main():
             dpg.add_table_column(label="Action")
             dpg.add_table_column(label="Raccourci")
 
-            actions = ["Test Touche 1", "Test Touche 1"]
+            actions = ["Test Touche 1", "Test Touche 2"]
             all_options_elements += actions
             for action in actions:
                 with dpg.table_row():
@@ -291,10 +296,23 @@ def main():
             dpg.add_button(label="Appliquer", callback=save_settings, user_data=all_options_elements, width=WIDTH//3//2-5)
     
     ##############
+    
 
-    #toggle_viewport_fullscreen()
-    dpg.show_viewport(maximized=False)
-    dpg.start_dearpygui()
-    dpg.destroy_context()
+## Init
+def initialisation():
+    if not os.path.exists(user_directory+"PolitiSim/"): os.makedirs(user_directory+"PolitiSim/")
+    if not os.path.exists(user_directory+"PolitiSim/Saves"): os.makedirs(user_directory+"PolitiSim/Saves")
 
+settings = get_settings()
+    
+if settings["FullScreen?"] and not settings["WindowedFullScreen?"]:
+    dpg.toggle_viewport_fullscreen()
+else:
+    dpg.show_viewport(maximized=settings["FullScreen?"] and settings["WindowedFullScreen?"])
+
+dpg.start_dearpygui()
+dpg.destroy_context()
+
+
+initialisation()
 main()
