@@ -158,10 +158,10 @@ class Pays:
         opinions.update_opinions(self)
 
     def update_opinions(self):
-        self.opinions["capitalisme"]    = max(min(round(self.opinions["capitalisme"] + (self.richesse-50))//10, 100), 0)
-        self.opinions["socialisme"]     = max(min(round(self.opinions["socialisme"] - (self.richesse-50))//10, 100), 0)
-        self.opinions["liberalisme"]    = max(min(round(self.opinions["liberalisme"] - (self.bonheur-50))//10, 100), 0)
-        self.opinions["conservatisme"]  = max(min(round(self.opinions["conservatisme"] + (self.bonheur-50))//10, 100), 0)
+        self.opinions["capitalisme"]    = max(min((self.opinions["capitalisme"] + (self.richesse-50))//10, 100), 0)
+        self.opinions["socialisme"]     = max(min((self.opinions["socialisme"] - (self.richesse-50))//10, 100), 0)
+        self.opinions["liberalisme"]    = max(min((self.opinions["liberalisme"] - (self.bonheur-50))//10, 100), 0)
+        self.opinions["conservatisme"]  = max(min((self.opinions["conservatisme"] + (self.bonheur-50))//10, 100), 0)
         
     def obtenir_portée(self):
         portées_max = 50 * len(self.opinions)
@@ -216,16 +216,25 @@ def save_settings(sender, app_data, values):
     settings = get_settings()
 
 def get_settings():
-    if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"): 
-       return pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
-    return {
+    default_settings = {
         'FullScreen?': False,
         'VSync?': False,
         'AZERTY?': False,
         'QWERTY?': False,
         'personalized?': False,
-        "WindowedFullScreen?": False
+        'WindowedFullScreen?': False,
+        'Resolution?': '1280x720',
+        "Test Touche 1": None,
+        "Test Touche 2": None,
     }
+
+    if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"):
+        settings_temp = pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
+        if hash(str(sorted(([x for x in default_settings])))) == hash(str(sorted(([x for x in settings_temp])))):
+            return settings_temp
+        else:
+            os.remove(user_directory+"PolitiSim/PolitiSim.settings")
+    return default_settings
 
 def check_1_only(sender, app_data, user_data):
     dpg.set_value(sender, value=True)
@@ -236,12 +245,14 @@ def check_1_only(sender, app_data, user_data):
 #####################
 
 def main():
-    WIDTH = 1280
-    HEIGHT = 720
+    settings = get_settings()
+    WIDTH, HEIGHT= map(int, settings["Resolution?"].split("x"))
+    BACKGROUND_COLOR = (0, 100, 200)
 
     dpg.create_context()
-    dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=(0, 102, 255), width=WIDTH, height=HEIGHT)
+    dpg.create_viewport(title='PolitiSim', resizable=False, vsync=True, clear_color=BACKGROUND_COLOR, width=WIDTH, height=HEIGHT)
     dpg.setup_dearpygui()
+
 
     with dpg.texture_registry(show=False):
         width, height, channels, data = dpg.load_image(os.path.join("data/", "PolitiSim_white.png"))
@@ -253,25 +264,29 @@ def main():
     with dpg.window(label="Menu Principal", tag="menu_principal", autosize=True, no_close=True, no_move=True, no_collapse=True, pos=(WIDTH//3, HEIGHT//3)):       
         for args in [("Jouer", play), ("Tutoriel", rien), ("Options", lambda: dpg.configure_item("Menu_Options", show=True)), ("Crédits", lambda: dpg.configure_item("Menu_Credits", show=True)), ("Quitter", quit)]:
             dpg.add_button(tag="Button_menu_"+args[0], arrow=False, label=args[0], callback=args[1], width=WIDTH//3, height=HEIGHT//15)
-    
+        
     # ----> Menu Crédits
 
-        with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3), width=WIDTH//3+10):
-            with dpg.child_window(label="xOKONORE"):
-                dpg.add_text("OKONORE")
+    with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3), width=WIDTH//3+10):
+        with dpg.child_window(label="xOKONORE"):
+            dpg.add_text("OKONORE")
 
     # ----> Menu Options
 
-    with dpg.window(label="Menu Options", tag="Menu_Options", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3)):
+    with dpg.window(label="Menu Options", tag="Menu_Options", modal=True, show=False,  no_resize=True, no_open_over_existing_popup=False, pos=(WIDTH//3, HEIGHT//3)):
+        dpg.add_separator()
         all_options_elements = []
         dpg.add_text("Paramètres d'Écran:", bullet=True)
         with dpg.group(horizontal=True):
             screen_check_box = [("FullScreen?", "Plein Ecran"), ("WindowedFullScreen?", "Fenêtré"), ("VSync?", "VSync")]  
-            all_options_elements += [tag for tag, _ in screen_check_box]                
+            all_options_elements += [tag for tag, _ in screen_check_box] + ["Resolution?"]             
             for i, args in enumerate(screen_check_box):
                 dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], indent=(WIDTH//3//3-5)*i)
-        
-        dpg.add_spacer(height=5)
+        dpg.add_text("Résolution:")
+        resolutions = sorted([(1920, 1080), (1366, 768), (1280, 720)])
+        dpg.add_listbox(([(str(w) + "x" + str(h)) for w, h in resolutions]), tag="Resolution?", width=WIDTH//3, default_value=settings["Resolution?"])
+
+        dpg.add_separator()
         dpg.add_text("Paramètres de touches:", bullet=True)
         with dpg.group(label="Touches", horizontal=True):
             keys_check_box = [("AZERTY?", "Preset AZERTY"), ("QWERTY?", "Preset QWERTY"), ("personalized?", "Personalisé")]
@@ -290,29 +305,26 @@ def main():
                 with dpg.table_row():
                     dpg.add_text(action)
 
-        dpg.add_spacer(height=5)
+        dpg.add_separator()
         with dpg.group(horizontal=True):
             dpg.add_button(label="Fermer", callback=lambda: dpg.hide_item("Menu_Options"), width=WIDTH//3//2-5)
             dpg.add_button(label="Appliquer", callback=save_settings, user_data=all_options_elements, width=WIDTH//3//2-5)
     
+    # ----> Menu Resolution
+
     ##############
-    
+
+    if settings["FullScreen?"] and not settings["WindowedFullScreen?"]:
+        dpg.toggle_viewport_fullscreen()
+    else:
+        dpg.show_viewport(maximized=settings["FullScreen?"] and settings["WindowedFullScreen?"])
+    dpg.start_dearpygui()
+    dpg.destroy_context()
 
 ## Init
 def initialisation():
     if not os.path.exists(user_directory+"PolitiSim/"): os.makedirs(user_directory+"PolitiSim/")
     if not os.path.exists(user_directory+"PolitiSim/Saves"): os.makedirs(user_directory+"PolitiSim/Saves")
-
-settings = get_settings()
-    
-if settings["FullScreen?"] and not settings["WindowedFullScreen?"]:
-    dpg.toggle_viewport_fullscreen()
-else:
-    dpg.show_viewport(maximized=settings["FullScreen?"] and settings["WindowedFullScreen?"])
-
-dpg.start_dearpygui()
-dpg.destroy_context()
-
 
 initialisation()
 main()
