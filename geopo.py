@@ -27,40 +27,27 @@ class Chambre:
         self.pouvoirs = pouvoirs    # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
         self.elections = {"type d'election": nom_election, "electeurs": electeurs, "delai elections": delai_elections}   #{"type d'election": ("Majoritaire à 2 tours", 0)}
         
-    def lancer_elections(self):
-        COTE = 100
-        
-        def election_directe_1_tour(n, partis, resultats, carte_electorale, portées_max, cartes):
-            cartes.append({"carte":deepcopy(carte_electorale), "resultats": resultats |  {"abstention":COTE**2 - sum([resultats[clé] for clé in resultats])}})
-            if partis == []:
-                return {
-                    "nombre de cartes": n,
-                    "cartes": cartes,
-                        }
-            taille, taches = len(carte_electorale)-1, []
-            for x, y, logo in partis:            
-                for x1, y1 in ([(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y)] if n % 2 == 0 else 
-                               [(1+x, 0+y), (0+x, 1+y), (-1+x, 0+y), (0+x, -1+y), (1+x, 1+y), (-1+x, -1+y), (1+x, -1+y), (-1+x, 1+y)]):
-                    if 0 <= x1 <= taille and 0 <= y1 <= taille and carte_electorale[y1][x1] == "." and n <= COTE * portées_max[logo]: 
-                        carte_electorale[y1][x1] = logo
-                        resultats[logo] += 1
-                        taches.append((x1, y1, logo))
-            return election_directe_1_tour(n+1, taches, resultats, carte_electorale, portées_max, cartes)
-        
+    def lancer_elections(self, pays_opinions, pays_partis):
+
+        def election_directe_1_tour(portées_max):
+            results = dict()
+            nb_opinions = len(parti.opinion)
+            for parti in pays_partis:
+                results[parti.nom] = sum([100-abs(pays_opinions[key]-parti[key])/nb_opinions for key in parti.opinion])
+            
+            sum_results = sum([results[key] for key in results])
+            
+            for parti in pays_partis:
+                results[parti.nom] = round(results[parti.nom]/sum_results*randrange(100-10, 100), 2)
+
+            return results | {"abstention": sum([results[key] for key in results])}
+
         def election_indirecte_1_tours():
             pass
-
-        pays, partis, resultats = chercher_element("Francie", liste_pays), [], dict()
-        carte_electorale = [["." for _ in range(COTE)] for _ in range(COTE)] 
-        for parti in pays.partis_politiques:
-            resultats[parti.nom] = 0
-            x, y = max(COTE//100 * parti.opinions["liberalisme"]-1, 0), max(COTE//100*parti.opinions["capitalisme"]-1, 0)
-            carte_electorale[y][x] = parti.nom
-            partis.append((x, y, parti.nom))
-            
+        
 
         if self.elections["type d'election"] == "Election directe à 1 tour":
-            return election_directe_1_tour(0, partis, resultats, carte_electorale, pays.obtenir_portée(),[])
+            return election_directe_1_tour(pays.obtenir_portée())
         elif self.elections["type d'election"] == "Election directe à 2 tour":
             return election_directe_2_tours()
         elif self.elections["type d'election"] == "Election indirect à 1 tour":
@@ -213,7 +200,6 @@ def save_settings(sender, app_data, values):
     for element in values:
         settings[element] = dpg.get_value(element)
     pickle.dump(settings, open(user_directory+"PolitiSim/PolitiSim.settings", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-    settings = get_settings()
 
 def get_settings():
     default_settings = {
@@ -224,8 +210,7 @@ def get_settings():
         'personalized?': False,
         'WindowedFullScreen?': False,
         'Resolution?': '1280x720',
-        "Test Touche 1": None,
-        "Test Touche 2": None,
+        "Viendra": None,
     }
 
     if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"):
@@ -245,6 +230,7 @@ def check_1_only(sender, app_data, user_data):
 #####################
 
 def main():
+
     settings = get_settings()
     WIDTH, HEIGHT= map(int, settings["Resolution?"].split("x"))
     BACKGROUND_COLOR = (0, 100, 200)
@@ -267,9 +253,11 @@ def main():
         
     # ----> Menu Crédits
 
-    with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3), width=WIDTH//3+10):
-        with dpg.child_window(label="xOKONORE"):
+    with dpg.window(label="Crédits", tag="Menu_Credits", modal=True, show=False,  no_resize=True, pos=(WIDTH//3, HEIGHT//3), width=WIDTH//3+10, autosize=True):
+        with dpg.child_window(height=50):
             dpg.add_text("OKONORE")
+        with dpg.child_window(height=50):
+            dpg.add_text("Ferwyou")
 
     # ----> Menu Options
 
@@ -299,7 +287,7 @@ def main():
             dpg.add_table_column(label="Action")
             dpg.add_table_column(label="Raccourci")
 
-            actions = ["Test Touche 1", "Test Touche 2"]
+            actions = ["Viendra",]
             all_options_elements += actions
             for action in actions:
                 with dpg.table_row():
@@ -322,6 +310,7 @@ def main():
     dpg.destroy_context()
 
 ## Init
+
 def initialisation():
     if not os.path.exists(user_directory+"PolitiSim/"): os.makedirs(user_directory+"PolitiSim/")
     if not os.path.exists(user_directory+"PolitiSim/Saves"): os.makedirs(user_directory+"PolitiSim/Saves")
