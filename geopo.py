@@ -195,11 +195,14 @@ def option_menu():
 def play():
     pass
 
+def create_file(value, file_path):
+    pickle.dump(value, open(user_directory+"PolitiSim/"+file_path, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+
 def save_settings(sender, app_data, values):
     settings = dict()
     for element in values:
         settings[element] = dpg.get_value(element)
-    pickle.dump(settings, open(user_directory+"PolitiSim/PolitiSim.settings", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+    create_file(settings, "PolitiSim.settings")
 
 def get_settings():
     default_settings = {
@@ -212,7 +215,6 @@ def get_settings():
         'Resolution?': '1280x720',
         "Viendra": None,
     }
-
     if os.path.exists(user_directory+"PolitiSim/PolitiSim.settings"):
         settings_temp = pickle.load(open(user_directory+"PolitiSim/PolitiSim.settings", "rb"))
         if hash(str(sorted(([x for x in default_settings])))) == hash(str(sorted(([x for x in settings_temp])))):
@@ -230,7 +232,7 @@ def check_1_only(sender, app_data, user_data):
 #####################
 
 def main():
-
+    global settings, WIDTH, HEIGHT
     settings = get_settings()
     WIDTH, HEIGHT= map(int, settings["Resolution?"].split("x"))
     BACKGROUND_COLOR = (0, 100, 200)
@@ -272,7 +274,7 @@ def main():
                 dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], indent=(WIDTH//3//3-5)*i)
         dpg.add_text("Résolution:")
         resolutions = sorted([(1920, 1080), (1366, 768), (1280, 720)])
-        dpg.add_listbox(([(str(w) + "x" + str(h)) for w, h in resolutions]), tag="Resolution?", width=WIDTH//3, default_value=settings["Resolution?"])
+        dpg.add_listbox(([x for x in resolutions]), tag="Resolution?", width=WIDTH//3, default_value=settings["Resolution?"])
 
         dpg.add_separator()
         dpg.add_text("Paramètres de touches:", bullet=True)
