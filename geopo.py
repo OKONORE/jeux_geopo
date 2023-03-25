@@ -3,7 +3,6 @@ import os
 import sys
 import pathlib
 import pickle
-from copy import deepcopy
 import dearpygui.dearpygui as dpg
 
 sys.setrecursionlimit(999999)
@@ -18,27 +17,27 @@ elif sys.platform == "darwin":
 ##
 
 class Chambre:
-    def __init__(self, nom, pays, nb_sieges, pouvoirs, nom_election,
-                 electeurs, delai_elections):
-        self.nom = nom
-        self.pays = pays
-        self.nb_sieges = nb_sieges
+    def __init__(self, name: str, country: str, nb_seats: int, pouvoirs: list, name_election: str,
+                 electeurs: str, delai_elections: int):
+        self.name = name
+        self.country = country
+        self.nb_seats = nb_seats
         self.elus = []
         self.pouvoirs = pouvoirs    # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
-        self.elections = {"type d'election": nom_election, "electeurs": electeurs, "delai elections": delai_elections}   #{"type d'election": ("Majoritaire à 2 tours", 0)}
+        self.elections = {"type d'election": name_election, "electeurs": electeurs, "delai elections": delai_elections}   #{"type d'election": ("Majoritaire à 2 tours", 0)}
         
-    def lancer_elections(self, pays_opinions, pays_partis):
+    def lancer_elections(self, country_opinions, country_partis):
 
         def election_directe_1_tour(portées_max):
             results = dict()
             nb_opinions = len(parti.opinion)
-            for parti in pays_partis:
-                results[parti.nom] = sum([100-abs(pays_opinions[key]-parti[key])/nb_opinions for key in parti.opinion])
+            for parti in country_partis:
+                results[parti.name] = sum([100-abs(country_opinions[key]-parti[key])/nb_opinions for key in parti.opinion])
             
             sum_results = sum([results[key] for key in results])
             
-            for parti in pays_partis:
-                results[parti.nom] = round(results[parti.nom]/sum_results*randrange(100-10, 100), 2)
+            for parti in country_partis:
+                results[parti.name] = round(results[parti.name]/sum_results*randrange(100-10, 100), 2)
 
             return results | {"abstention": sum([results[key] for key in results])}
 
@@ -47,7 +46,7 @@ class Chambre:
         
 
         if self.elections["type d'election"] == "Election directe à 1 tour":
-            return election_directe_1_tour(pays.obtenir_portée())
+            return election_directe_1_tour(country.obtenir_portée())
         elif self.elections["type d'election"] == "Election directe à 2 tour":
             return election_directe_2_tours()
         elif self.elections["type d'election"] == "Election indirect à 1 tour":
@@ -64,100 +63,104 @@ class Chambre:
                 return
         self.elus.append(elu)
 
-    def retirer_elu(self, nom_elu):
+    def retirer_elu(self, name_elu):
         for i, elu in enumerate(self.elus):
-            if elu.nom == nom_elu:
+            if elu.name == name_elu:
                 self.elus[i] = None
                 return elu
-        raise ValueError("ce nom n'est pas dans la liste")
-
+        raise ValueError("ce name n'est pas dans la liste")
 
 class Membre:
-    def __init__(self, nom, age, salaire, loyaute, popularite, talent):
-        self.nom = nom
+    def __init__(self, name: str, age: int, salary: int, loyalty: int, popularity: int, talent: int):
+        self.name = name
         self.age = age
-        self.salaire = salaire
-        self.loyaute = loyaute
-        self.popularite = popularite
+        self.salary = salary
+        self.loyalty = loyalty
+        self.popularity = popularity
         self.talent = talent
 
 class Parti:
-    def __init__(self, nom, pays, nb_adherants, logo, capitalisme, liberalisme):
-        capitalisme, liberalisme = max(min(capitalisme, 100), 0), max(min(liberalisme, 100), 0)
-        self.nom = nom
-        self.pays = pays
+    def __init__(self, name: str, country: str, nb_adherent: int, logo, capitalism: int, liberalism: int):
+        capitalism, liberalism = max(min(capitalism, 100), 0), max(min(liberalism, 100), 0)
+        self.name = name
+        self.country = country
         self.opinions = {
-            "capitalisme": capitalisme,
-            "socialisme": 100 - capitalisme,
-            "conservatisme": 100 - liberalisme,
-            "liberalisme":liberalisme,
+            "capitalism": capitalism,
+            "socialism": 100 - capitalism,
+            "conservatism": 100 - liberalism,
+            "liberalism":liberalism,
             }
         self.logo = logo  # os.path.join(logo_fichier)
-        self.nb_adherants = nb_adherants
-        self.membres = []
-        self.salaires = self.calculer_salaires()
-        self.leader_id = None
-        self.economie = {"Caisse":50000, "Depenses":[], "Revenus":[]}
+        self.nb_adherent = nb_adherent
+        self.members = []
+        self.nb_members = 0
+        self.salarys = self.sum_salarys()
+        self.leader = None
+        self.economy = {"Caisse":50000, "Depenses":[], "Revenus":[]}
         
-    def calculer_salaires(self):
-        return sum([membre.salaire for membre in self.membres])
+    def sum_salarys(self):
+        return sum([membre.salary for membre in self.members])
 
-    def ajouter_membre(self, membre):
-        for i, place in enumerate(self.membres):
-            if place is None:
-                self.membres[i] = membre
-                self.calculer_salaires()
-                return
-        self.membres.append(membre)
-        self.calculer_salaires()
+    def is_a_member(self, member_name):
+        return member_name in [membre.name for membre in self.members]
 
-    def retirer_membre(self, nom_membre):
-        for i, membre in enumerate(self.membres):
-            if membre.nom == nom_membre:
-                self.membres[i] = None
-                self.calculer_salaires()
-                return
-        raise ValueError("ce nom n'est pas dans la liste")
+    def add_member(self, membre):
+        self.members.append(membre)
+        self.nb_members += 1
+        self.salarys = self.sum_salarys()
+        
+    def retirer_membre(self, member_name: str):
+        """
+        Remove a member with self.name == 'member_name' from the party members
+        """
+        for i, name in enumerate([membre.name for membre in self.members]):
+            if name == member_name:
+                if i < self.nb_members - 1:
+                    self.members[i] = self.members.pop()
+                else:
+                    self.members.pop()
+                self.nb_members -= 1
+                self.salarys = sum_salarys()
+                return True
+        raise ValueError("This member does not exist")
 
-    def changer_leader(self, nom_membre):
-        for i, membre in enumerate(self.membres):
-            if membre.nom == nom_membre:
-                self.leader_id = i
-                self.membres[i].salaire *= 2
-                return
-        raise ValueError("ce nom n'est pas dans la liste")
+    def changer_leader(self, member_name):
+        for name in [membre.name for membre in self.members]:
+            if member_name == name:
+                self.leader = member_name
+        raise ValueError("This member does not exist")
 
-class Pays:
-    def __init__(self, nom : str, population : int, partis_politiques : list, chambres : list, logo):
-        self.nom = nom                                      # Nom complet du pays
+class country:
+    def __init__(self, name : str, population : int, partis_politiques : list, chambres : list, logo):
+        self.name = name                                      # name complet du country
         self.logo = logo #os.path.join(logo_fichier)
-        self.population = population                        # Habitants du pays
-        self.richesse = 50                                  # Richesse du pays | 0;29 > Très pauvre | 30;49 > Très pauvre | 50;69 > Modéré | 70;89 > Riche | 90;100 > Très riche |
+        self.population = population                        # Habitants du country
+        self.richesse = 50                                  # Richesse du country | 0;29 > Très pauvre | 30;49 > Très pauvre | 50;69 > Modéré | 70;89 > Riche | 90;100 > Très riche |
         self.partis_politiques = partis_politiques          
-        self.bonheur = 50                                   # Bonheur du pays | 0;29 > Très malheureux | 30;49 > Malheureux | 50;69 > Neutres | 70;89 > Heureux | 90;100 > Très heureux |
-        self.opinions = {"capitalisme":50, "socialisme":50, "conservatisme":50, "liberalisme":50,} 
+        self.bonheur = 50                                   # Bonheur du country | 0;29 > Très malheureux | 30;49 > Malheureux | 50;69 > Neutres | 70;89 > Heureux | 90;100 > Très heureux |
+        self.opinions = {"capitalism":50, "socialism":50, "conservatism":50, "liberalism":50,} 
         self.agenda = dict()
         self.constitution = {"Chambres":chambres}
 
     def nouveau_tour(self):
-        bonheur = max(min(round(bonheur + (pays.richesse-50)//10), 100), 0)
+        bonheur = max(min(round(bonheur + (country.richesse-50)//10), 100), 0)
         population += round(population * (bonheur - 40//1500))
         opinions.update_opinions(self)
 
     def update_opinions(self):
-        self.opinions["capitalisme"]    = max(min((self.opinions["capitalisme"] + (self.richesse-50))//10, 100), 0)
-        self.opinions["socialisme"]     = max(min((self.opinions["socialisme"] - (self.richesse-50))//10, 100), 0)
-        self.opinions["liberalisme"]    = max(min((self.opinions["liberalisme"] - (self.bonheur-50))//10, 100), 0)
-        self.opinions["conservatisme"]  = max(min((self.opinions["conservatisme"] + (self.bonheur-50))//10, 100), 0)
+        self.opinions["capitalism"]    = max(min((self.opinions["capitalism"] + (self.richesse-50))//10, 100), 0)
+        self.opinions["socialism"]     = max(min((self.opinions["socialism"] - (self.richesse-50))//10, 100), 0)
+        self.opinions["liberalism"]    = max(min((self.opinions["liberalism"] - (self.bonheur-50))//10, 100), 0)
+        self.opinions["conservatism"]  = max(min((self.opinions["conservatism"] + (self.bonheur-50))//10, 100), 0)
         
     def obtenir_portée(self):
         portées_max = 50 * len(self.opinions)
         portées = dict()
         for parti in self.partis_politiques:
-            portées[parti.nom] = max((100-sum([abs(parti.opinions[opinion] - self.opinions[opinion]) for opinion in parti.opinions]) // len(self.opinions)) / 100, 0.02)
+            portées[parti.name] = max((100-sum([abs(parti.opinions[opinion] - self.opinions[opinion]) for opinion in parti.opinions]) // len(self.opinions)) / 100, 0.02)
         return portées
 
-    def chambres_selon_pouvoir(self, pouvoir):
+    def chambres_selon_pouvoir(self, pouvoir: list):
         resultat = list()
         for chambre in self.constitution["Chambres"]:
             if pouvoir in chambre.pouvoirs:
@@ -170,17 +173,13 @@ def print_liste(liste):
     for i, ligne in enumerate(liste):
         print(i, "\t", *ligne, sep="")
 
-def chercher_element(nom, liste):
+def chercher_element(name, list: list):
     for element in liste:
-        if element.nom == nom:
+        if element.name == name:
             return element
 
 def membre_aleatoire(self):
-    return Membre("NOM", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
-
-def _hyperlink(text, address):
-    b = dpg.add_button(label=text, callback=lambda:webbrowser.open(address))
-    dpg.bind_item_theme(b, "__demo_hyperlinkTheme")
+    return Membre("name", randrange(18, 60), randrange(2000, 6000), *[randrange(0, 11) for _ in range(3)])
 
 def quit():
     dpg.stop_dearpygui()
