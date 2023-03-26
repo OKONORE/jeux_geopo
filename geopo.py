@@ -26,36 +26,40 @@ class Chambre:
         self.pouvoirs = pouvoirs    # "legislatif", "constitutionnel", "executif", "Judiciaire", "relations internationales"
         self.elections = {"type d'election": name_election, "electeurs": electeurs, "delai elections": delai_elections}   #{"type d'election": ("Majoritaire à 2 tours", 0)}
         
-    def lancer_elections(self, country_opinions, country_partis):
-
-        def election_directe_1_tour(portées_max):
+    def lancer_elections(self, country_opinions: list, country_partis: list):
+        def first_past_the_post_voting(partis):
+            """
+            Return a dict with the result of a First-past-the-post voting election
+            """
             results = dict()
+            # portées_max = self.country.obtenir_portée()
             nb_opinions = len(parti.opinion)
-            for parti in country_partis:
+            for parti in partis:
                 results[parti.name] = sum([100-abs(country_opinions[key]-parti[key])/nb_opinions for key in parti.opinion])
-            
             sum_results = sum([results[key] for key in results])
-            
-            for parti in country_partis:
+            for parti in partis:
                 results[parti.name] = round(results[parti.name]/sum_results*randrange(100-10, 100), 2)
-
             return results | {"abstention": sum([results[key] for key in results])}
-
-        def election_indirecte_1_tours():
-            pass
         
+        if self.elections["type d'election"] == "Scrutin uninominal majoritaire à un tour":
+            return first_past_the_post_voting(country_partis)
 
-        if self.elections["type d'election"] == "Election directe à 1 tour":
-            return election_directe_1_tour(country.obtenir_portée())
         elif self.elections["type d'election"] == "Election directe à 2 tour":
-            return election_directe_2_tours()
-        elif self.elections["type d'election"] == "Election indirect à 1 tour":
+            turn = first_past_the_post_voting(country_partis)
+            turn = sorted([tuple(turn[key], key) for key in turn], reverse=True)[:2]
+            if len(turn) >= 2: # 2 party
+                turn = first_past_the_post_voting([])
+                    
+
+        elif self.elections["type d'election"] == "Election indirecte à 1 tour":
             return
-        elif self.elections["type d'election"] == "Election indirect à 2 tour":
+
+        elif self.elections["type d'election"] == "Election indirecte à 2 tour":
             return
+
         else:
             raise ValueError("lancer_elections(): erreur, type d'election inexistant")
-        
+
     def ajouter_elu(self, elu):
         for i, place in enumerate(self.elus):
             if place is None:
@@ -80,7 +84,7 @@ class Membre:
         self.talent = talent
 
 class Parti:
-    def __init__(self, name: str, country: str, nb_adherent: int, logo, capitalism: int, liberalism: int):
+    def __init__(self, name: str, country, nb_adherent: int, logo, capitalism: int, liberalism: int):
         capitalism, liberalism = max(min(capitalism, 100), 0), max(min(liberalism, 100), 0)
         self.name = name
         self.country = country
@@ -124,7 +128,7 @@ class Parti:
                 return True
         raise ValueError("This member does not exist")
 
-    def changer_leader(self, member_name):
+    def change_leader(self, member_name):
         for name in [membre.name for membre in self.members]:
             if member_name == name:
                 self.leader = member_name
@@ -273,7 +277,7 @@ def main():
                 dpg.add_checkbox(tag=args[0], label=args[1], default_value=settings[args[0]], indent=(WIDTH//3//3-5)*i)
         dpg.add_text("Résolution:")
         resolutions = sorted([(1920, 1080), (1366, 768), (1280, 720)])
-        dpg.add_listbox(([x for x in resolutions]), tag="Resolution?", width=WIDTH//3, default_value=settings["Resolution?"])
+        dpg.add_listbox(([str(x) + "x" + str(y) for x, y in resolutions]), tag="Resolution?", width=WIDTH//3, default_value=settings["Resolution?"])
 
         dpg.add_separator()
         dpg.add_text("Paramètres de touches:", bullet=True)
